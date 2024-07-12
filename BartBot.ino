@@ -31,7 +31,8 @@ float getDistance() { // in cm
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
 
-  long duration = pulseIn(echoPin, HIGH);
+  long duration = pulseIn(echoPin, HIGH, 20000);
+  if(duration == 0) return -1;
   return duration * 0.034 / 2; //Speed of Sound: 0.034 cm per microsecond
 }
 
@@ -65,25 +66,11 @@ void setup() {
 }
 
 void loop() {
-  if(Serial.available() > 0) {
-    int input = Serial.parseInt();
-    Serial.read();
-    if(input == 0) {
-      state = States::FORWARD;
-    }
-    else if(input == 1) {
-      state = States::BACKWARD;
-    }
-    else if(input == 2) {
-      state = States::STOP;
-    }
-    else if(input == 3) {
-      state = States::TURN;
-    }
-  }
-
   float distance = getDistance();
-  Serial.println(distance);
+  if(distance > -1.0) {
+    if(distance <= 10.0) state = States::BACKWARD;
+    Serial.println(distance);
+  }
 
   switch(state) {
     case FORWARD:
@@ -93,6 +80,8 @@ void loop() {
     case BACKWARD:
       leftMotor1.write(States::BACKWARD);
       rightMotor1.write(States::BACKWARD);
+      delay(2000);
+      state = States::STOP;
       break;
     case TURN:
       turnRight(2000);
