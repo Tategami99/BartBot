@@ -1,5 +1,4 @@
-#include <SPI.h>
-#include <MFRC522.h>
+#include <LiquidCrystal.h>
 #include <Servo.h>
 #include <SD.h>
 #include <TMRpcm.h>
@@ -14,28 +13,33 @@ enum Songs {
 Songs song = Songs::HAPPY_BIRTHDAY;
 
 //SD DEFINITIONS
-#define SD_CS_PIN 2
+#define SD_CS_PIN A0
 
 //AUDIO DEFINITIONS & VARIABLES
-#define SPEAKER_PIN 3
+#define SPEAKER_PIN 10
 TMRpcm speaker;
 unsigned long musicStartTime = 0;
 bool musicPlaying = false;
 unsigned long currentSongDuration = 0;
 
 //SERVO DEFINITIONS & VARIABLES
-#define SERVO_PIN 4
+#define SERVO_PIN 9
 Servo arm;
 
-//RFID DEFINITIONS & VARIABLES
-#define RST_PIN 8
-#define SS_PIN 9
-MFRC522 reader(SS_PIN, RST_PIN);
+//LCD DEFINITIONS
+#define LCD_RS 2
+#define LCD_EN 3
+#define LCD_D4 4
+#define LCD_D5 5
+#define LCD_D6 6
+#define LCD_D7 7
+LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 void setup() {
   Serial.begin(9600);
 
   //SD CARD
+  pinMode(SD_CS_PIN, OUTPUT);
   SD.begin(SD_CS_PIN);
   
   //AUDIO
@@ -45,9 +49,9 @@ void setup() {
   //SERVO
   arm.attach(SERVO_PIN);
 
-  //RFID
-  SPI.begin();
-  reader.PCD_Init();
+  //LCD
+  lcd.begin(16, 2);
+  lcd.print("ON");
 }
 
 void loop() {
@@ -55,14 +59,21 @@ void loop() {
   switch(song) {
     case HAPPY_BIRTHDAY:
       delay(1000);
+      lcd.clear();
+      lcd.print("Happy Birthday!");
       playAudioFile("happy_birthday.mp3", Songs::HAPPY_BIRTHDAY, 5);
       break;
     case OMG:
       delay(1000);
+      lcd.clear();
+      lcd.print("OMG");
       playAudioFile("omg.mp3", Songs::OMG, 5);
       break;
     case ITS_NOT_LIKE_I_LIKE_YOU:
       delay(1000);
+      lcd.clear();
+      lcd.println("It's Not Like I");
+      lcd.print("Like You");
       playAudioFile("its_not_like_i_like_you.mp3", Songs::ITS_NOT_LIKE_I_LIKE_YOU, 5);
       break;
   }
