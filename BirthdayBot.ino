@@ -24,6 +24,7 @@ Servo arm;
 
 //POTENTIOMETER DEFINITIONS
 #define POT_PIN A1
+unsigned long potOffset = 1;
 
 //LCD DEFINITIONS
 #define LCD_RS 2
@@ -55,12 +56,13 @@ void setup() {
 }
 
 void loop() {
+  delay(100);
   int potValue = analogRead(POT_PIN);
-  unsigned long mappedValue = map(potValue, 0, 1023, 0, numSongs);
+  unsigned long mappedValue = mapToSong(potValue, 0, 1020, 0, numSongs);
   Serial.print(potValue);
   Serial.print(" : ");
   Serial.println(mappedValue);
-  
+
   if(mappedValue == numSongs) {
     speaker.stopPlayback();
     return;
@@ -74,7 +76,12 @@ void loop() {
     playAudioFile();
   }
 
-  updateArm(100);
+  updateArm();
+}
+
+unsigned long mapToSong(long x, long in_min, long in_max, long out_min, long out_max) {
+  if(x > in_max) return out_max;
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 void playAudioFile() {
@@ -88,7 +95,7 @@ void playAudioFile() {
   lcd.clear();
 }
 
-void updateArm(unsigned long updateDelay) {
+void updateArm() {
   unsigned long elapsedTime = millis() - musicStartTime;
 
   int angle = map(elapsedTime, 0, songLength[currentSong], 0, 180);
@@ -98,6 +105,4 @@ void updateArm(unsigned long updateDelay) {
     musicPlaying = false;
     arm.write(180);
   }
-
-  delay(updateDelay);
 }
