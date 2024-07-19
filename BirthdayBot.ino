@@ -5,13 +5,6 @@
 #include <pcmConfig.h>
 #include <pcmRF.h>
 
-enum Songs {
-  HAPPY_BIRTHDAY = 130000,
-  OMG = 140000,
-  ITS_NOT_LIKE_I_LIKE_YOU = 150000
-};
-Songs song = Songs::HAPPY_BIRTHDAY;
-
 //SD DEFINITIONS
 #define SD_CS_PIN A0
 
@@ -20,11 +13,17 @@ Songs song = Songs::HAPPY_BIRTHDAY;
 TMRpcm speaker;
 unsigned long musicStartTime = 0;
 bool musicPlaying = false;
-unsigned long currentSongDuration = 0;
+unsigned int numSongs = 6;
+unsigned int currentSong = numSongs;
+char* songs[] = {"omg.wav", "superShy.wav", "hypeBoy.wav", "howSweet.wav", "eta.wav", "ditto.wav"};
+unsigned long songLength[] = {93000, 155000, 179000, 219000, 151000, 186000};
 
 //SERVO DEFINITIONS & VARIABLES
 #define SERVO_PIN 9
 Servo arm;
+
+//POTENTIOMETER DEFINITIONS
+#define POT_PIN A1
 
 //LCD DEFINITIONS
 #define LCD_RS 2
@@ -44,7 +43,8 @@ void setup() {
   
   //AUDIO
   speaker.speakerPin = SPEAKER_PIN;
-  speaker.quality(0);
+  speaker.quality(1);
+  speaker.volume(7);
 
   //SERVO
   arm.attach(SERVO_PIN);
@@ -55,47 +55,43 @@ void setup() {
 }
 
 void loop() {
-  //TODO: adjust volume for specific songs 
-  switch(song) {
-    case HAPPY_BIRTHDAY:
-      delay(1000);
-      lcd.clear();
-      lcd.print("Happy Birthday!");
-      playAudioFile("happy_birthday.mp3", Songs::HAPPY_BIRTHDAY, 5);
-      break;
-    case OMG:
-      delay(1000);
-      lcd.clear();
-      lcd.print("OMG");
-      playAudioFile("omg.mp3", Songs::OMG, 5);
-      break;
-    case ITS_NOT_LIKE_I_LIKE_YOU:
-      delay(1000);
-      lcd.clear();
-      lcd.println("It's Not Like I");
-      lcd.print("Like You");
-      playAudioFile("its_not_like_i_like_you.mp3", Songs::ITS_NOT_LIKE_I_LIKE_YOU, 5);
-      break;
+  int potValue = analogRead(POT_PIN);
+  unsigned long mappedValue = map(potValue, 0, 1023, 0, numSongs);
+  Serial.print(potValue);
+  Serial.print(" : ");
+  Serial.println(mappedValue);
+  
+  if(mappedValue == numSongs) {
+    speaker.stopPlayback();
+    return;
+  }
+
+  if(mappedValue != currentSong) {
+    currentSong = mappedValue;
+    playAudioFile();
+  } else if (!speaker.isPlaying()) {
+    currentSong = (currentSong + 1) % numSongs;
+    playAudioFile();
   }
 
   updateArm(100);
 }
 
-void playAudioFile(const char* filename, unsigned long duration, unsigned int volume) {
+void playAudioFile() {
   speaker.stopPlayback();
   arm.write(0);
-  currentSongDuration = duration;
   musicStartTime = millis();
   musicPlaying = true;
 
-  speaker.setVolume(volume);
-  speaker.play(filename);
+  speaker.play(songs[currentSong]);
+
+  lcd.clear();
 }
 
 void updateArm(unsigned long updateDelay) {
   unsigned long elapsedTime = millis() - musicStartTime;
 
-  int angle = map(elapsedTime, 0, currentSongDuration, 0, 180);
+  int angle = map(elapsedTime, 0, songLength[currentSong], 0, 180);
   arm.write(angle);
 
   if(!speaker.isPlaying()) {
