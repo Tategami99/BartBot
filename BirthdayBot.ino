@@ -24,7 +24,12 @@ Servo arm;
 
 //POTENTIOMETER DEFINITIONS
 #define POT_PIN A1
-unsigned long potOffset = 1;
+int lastPotValue;
+int potDeadband = 5;
+int numPotValues = 10;
+int potValues[10];
+int potIndex = 0;
+int potTotal = 0;
 
 //LCD DEFINITIONS
 #define LCD_RS 2
@@ -50,6 +55,14 @@ void setup() {
   //SERVO
   arm.attach(SERVO_PIN);
 
+  //POTENTIOMETER
+  for(int i = 0; i < numPotValues; i++) {
+    int value = analogRead(POT_PIN);
+    potValues[i] = value;
+    potTotal += value;
+  }
+  lastPotValue = potTotal / numPotValues;
+
   //LCD
   lcd.begin(16, 2);
   lcd.print("ON");
@@ -57,19 +70,17 @@ void setup() {
 
 void loop() {
   delay(100);
-  int potValue = analogRead(POT_PIN);
+  int potValue = updatePotentiometer();
   unsigned long mappedValue = mapToSong(potValue, 0, 1020, 0, numSongs);
-  Serial.print(potValue);
-  Serial.print(" : ");
-  Serial.println(mappedValue);
 
   if(mappedValue == numSongs) {
     speaker.stopPlayback();
     return;
   }
 
-  if(mappedValue != currentSong) {
+  if(potValue < lastPotValue - potDeadband || potValue > lastPotValue + potDeadband) {
     currentSong = mappedValue;
+    lastPotValue = potValue;
     playAudioFile();
   } else if (!speaker.isPlaying()) {
     currentSong = (currentSong + 1) % numSongs;
@@ -77,6 +88,14 @@ void loop() {
   }
 
   updateArm();
+}
+
+int updatePotentiometer() {
+  potTotal -= potValues[potIndex];
+  potValues[potIndex] = analogRead(POT_PIN);
+  potTotal += potValues[potIndex];
+  potIndex = (potIndex + 1) % numPotValues;
+  return potTotal / numPotValues;
 }
 
 unsigned long mapToSong(long x, long in_min, long in_max, long out_min, long out_max) {
