@@ -118,6 +118,7 @@ void updateArm() {
   unsigned long elapsedTime = millis() - musicStartTime;
 
   int angle = map(elapsedTime, 0, songLength[currentSong], 0, 180);
+  Serial.println(angle);
   arm.write(angle);
 
   if(!speaker.isPlaying()) {
