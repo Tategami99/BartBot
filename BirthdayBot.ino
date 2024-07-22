@@ -1,5 +1,4 @@
 #include <LiquidCrystal.h>
-#include <Servo.h>
 #include <SD.h>
 #include <TMRpcm.h>
 #include <pcmConfig.h>
@@ -16,11 +15,7 @@ bool musicPlaying = false;
 unsigned int numSongs = 6;
 unsigned int currentSong = numSongs;
 char* songs[] = {"omg.wav", "superShy.wav", "hypeBoy.wav", "howSweet.wav", "eta.wav", "ditto.wav"};
-unsigned long songLength[] = {93000, 155000, 179000, 219000, 151000, 186000};
-
-//SERVO DEFINITIONS & VARIABLES
-#define SERVO_PIN 9
-Servo arm;
+char* songTitle[] = {"OMG", "Super Shy", "Hype Boy", "How Sweet", "ETA", "Ditto"};
 
 //POTENTIOMETER DEFINITIONS
 #define POT_PIN A1
@@ -32,13 +27,20 @@ int potIndex = 0;
 int potTotal = 0;
 
 //LCD DEFINITIONS
+//VSS to GND
+//VDD to 5V
+//RW to GND
+//A to 3.3V
+//K to GND
 #define LCD_RS 2
 #define LCD_EN 3
 #define LCD_D4 4
 #define LCD_D5 5
 #define LCD_D6 6
 #define LCD_D7 7
+#define LCD_V0 9
 LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+unsigned int contrastValue = 50;
 
 void setup() {
   Serial.begin(9600);
@@ -52,9 +54,6 @@ void setup() {
   speaker.quality(1);
   speaker.volume(7);
 
-  //SERVO
-  arm.attach(SERVO_PIN);
-
   //POTENTIOMETER
   for(int i = 0; i < numPotValues; i++) {
     int value = analogRead(POT_PIN);
@@ -64,6 +63,8 @@ void setup() {
   lastPotValue = potTotal / numPotValues;
 
   //LCD
+  pinMode(LCD_V0, OUTPUT);  // Use PWM pin
+  analogWrite(9, contrastValue);  // Adjust value (0-255) for best contrast
   lcd.begin(16, 2);
   lcd.print("ON");
 }
@@ -87,7 +88,7 @@ void loop() {
     playAudioFile();
   }
 
-  updateArm();
+  updateDisplay();
 }
 
 int updatePotentiometer() {
@@ -105,7 +106,6 @@ unsigned long mapToSong(long x, long in_min, long in_max, long out_min, long out
 
 void playAudioFile() {
   speaker.stopPlayback();
-  arm.write(0);
   musicStartTime = millis();
   musicPlaying = true;
 
@@ -114,15 +114,22 @@ void playAudioFile() {
   lcd.clear();
 }
 
-void updateArm() {
+void updateDisplay() {
   unsigned long elapsedTime = millis() - musicStartTime;
+  unsigned long minutes = elapsedTime / 60000;
+  unsigned long seconds = (elapsedTime % 60000) / 1000;
 
-  int angle = map(elapsedTime, 0, songLength[currentSong], 0, 180);
-  Serial.println(angle);
-  arm.write(angle);
+  lcd.clear();
 
   if(!speaker.isPlaying()) {
     musicPlaying = false;
-    arm.write(180);
+    lcd.println("Happy Birthday");
+    lcd.print("Ewan!");
   }
+
+  lcd.println(songTitle[currentSong]);
+  
+  char formattedTime[6]; // M:SS\0
+  sprintf(formattedTime, "%lu:%02lu", minutes, seconds);
+  lcd.print(formattedTime);
 }
