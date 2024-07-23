@@ -18,7 +18,7 @@
 TMRpcm speaker;
 unsigned long musicStartTime = 0;
 const unsigned int numSongs = 6;
-unsigned int currentSong = numSongs;
+unsigned int currentSong = 0;
 unsigned int songsPlayedWithoutChange = 0;
 const char* songs[] = {"omg.wav", "superShy.wav", "hypeBoy.wav", "howSweet.wav", "eta.wav", "ditto.wav"};
 const char* songTitle[] = {
@@ -57,7 +57,7 @@ int potTotal = 0;
 LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 const unsigned int contrastValue = 0;
 unsigned long previousMillis = 0;
-const unsigned long interval = 2000;
+const unsigned long interval = 3000;
 
 void setup() {
   Serial.begin(9600);
@@ -69,7 +69,7 @@ void setup() {
   //AUDIO
   speaker.speakerPin = SPEAKER_PIN;
   speaker.quality(1);
-  speaker.volume(7);
+  speaker.volume(0);
 
   //POTENTIOMETER
   for(int i = 0; i < numPotValues; i++) {
@@ -83,24 +83,16 @@ void setup() {
   pinMode(LCD_V0, OUTPUT);  // Use PWM pin
   analogWrite(9, contrastValue);  // Adjust value (0-255) for best contrast
   lcd.begin(16, 2);
-  // lcd.clear();
-  // lcd.print("ON");
+  lcd.setCursor(0, 0);
 }
 
 void loop() {
-  delay(100);
   int potValue = updatePotentiometer();
   unsigned long mappedValue = mapToSong(potValue, 0, 1020, 0, numSongs);
 
-  if(currentSong == -1) return;
-  else if(mappedValue == numSongs) {
-    currentSong = mappedValue;
+  if(mappedValue == numSongs) {
+    currentSong = numSongs;
     speaker.stopPlayback();
-    lcd.setCursor(0, 0);
-    lcd.print("Happy Birthday  ");
-    lcd.setCursor(0, 1);
-    lcd.print("Ewan!           ");
-    return;
   }
   else if(potValue < lastPotValue - potDeadband || potValue > lastPotValue + potDeadband) {
     speaker.stopPlayback();
@@ -116,6 +108,13 @@ void loop() {
   if(millis() - previousMillis >= interval && speaker.isPlaying()) {
     previousMillis = currentMillis;
     updateDisplay(currentMillis);
+  }
+  else if(millis() - previousMillis >= interval) {
+    previousMillis = currentMillis;
+    lcd.setCursor(0, 0);
+    lcd.print(F("HBD Ewan!       "));
+    lcd.setCursor(0, 1);
+    lcd.print(F("                "));
   }
 }
 
@@ -133,12 +132,12 @@ unsigned long mapToSong(long x, long in_min, long in_max, long out_min, long out
 }
 
 void playAudioFile() {
-  Serial.println("printing");
   speaker.stopPlayback();
   musicStartTime = millis();
   songsPlayedWithoutChange++;
 
   speaker.play(songs[currentSong]);
+  lcd.clear();
 }
 
 void updateDisplay(unsigned long currentMillis) {
@@ -154,8 +153,8 @@ void updateDisplay(unsigned long currentMillis) {
 
   lcd.setCursor(0, 1);
   lcd.print(minutes);
-  lcd.print(":");
-  if(seconds < 10) lcd.print("0");
+  lcd.print(F(":"));
+  if(seconds < 10) lcd.print(F("0"));
   lcd.print(seconds);
-  lcd.print("            ");
+  lcd.print(F("            "));
 }
