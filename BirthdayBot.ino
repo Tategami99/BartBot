@@ -5,19 +5,34 @@
 #include <pcmRF.h>
 
 //SD DEFINITIONS
+//GND to GND
+//VCC to 5V
+//MISO to 12
+//MOSI to 11
+//SCK to 13
 #define SD_CS_PIN A0
 
 //AUDIO DEFINITIONS & VARIABLES
+//other to GND
 #define SPEAKER_PIN 10
 TMRpcm speaker;
 unsigned long musicStartTime = 0;
-bool musicPlaying = false;
-unsigned int numSongs = 6;
+const unsigned int numSongs = 6;
 unsigned int currentSong = numSongs;
-char* songs[] = {"omg.wav", "superShy.wav", "hypeBoy.wav", "howSweet.wav", "eta.wav", "ditto.wav"};
-char* songTitle[] = {"OMG", "Super Shy", "Hype Boy", "How Sweet", "ETA", "Ditto"};
+unsigned int songsPlayedWithoutChange = 0;
+const char* songs[] = {"omg.wav", "superShy.wav", "hypeBoy.wav", "howSweet.wav", "eta.wav", "ditto.wav"};
+const char* songTitle[] = {
+  "OMG             ", 
+  "Super Shy       ", 
+  "Hype Boy        ", 
+  "How Sweet       ", 
+  "ETA             ", 
+  "Ditto            "
+  };
 
 //POTENTIOMETER DEFINITIONS
+//1 edge to 5V
+//1 edge to GND
 #define POT_PIN A1
 int lastPotValue;
 int potDeadband = 5;
@@ -34,13 +49,15 @@ int potTotal = 0;
 //K to GND
 #define LCD_RS 2
 #define LCD_EN 3
-#define LCD_D4 4
-#define LCD_D5 5
-#define LCD_D6 6
-#define LCD_D7 7
+#define LCD_D4 7
+#define LCD_D5 6
+#define LCD_D6 5
+#define LCD_D7 4
 #define LCD_V0 9
 LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
-unsigned int contrastValue = 50;
+const unsigned int contrastValue = 0;
+unsigned long previousMillis = 0;
+const unsigned long interval = 2000;
 
 void setup() {
   Serial.begin(9600);
@@ -66,7 +83,8 @@ void setup() {
   pinMode(LCD_V0, OUTPUT);  // Use PWM pin
   analogWrite(9, contrastValue);  // Adjust value (0-255) for best contrast
   lcd.begin(16, 2);
-  lcd.print("ON");
+  // lcd.clear();
+  // lcd.print("ON");
 }
 
 void loop() {
@@ -74,21 +92,31 @@ void loop() {
   int potValue = updatePotentiometer();
   unsigned long mappedValue = mapToSong(potValue, 0, 1020, 0, numSongs);
 
-  if(mappedValue == numSongs) {
+  if(currentSong == -1) return;
+  else if(mappedValue == numSongs) {
+    currentSong = mappedValue;
     speaker.stopPlayback();
+    lcd.setCursor(0, 0);
+    lcd.print("Happy Birthday  ");
+    lcd.setCursor(0, 1);
+    lcd.print("Ewan!           ");
     return;
   }
-
-  if(potValue < lastPotValue - potDeadband || potValue > lastPotValue + potDeadband) {
+  else if(potValue < lastPotValue - potDeadband || potValue > lastPotValue + potDeadband) {
+    speaker.stopPlayback();
     currentSong = mappedValue;
     lastPotValue = potValue;
-    playAudioFile();
+    songsPlayedWithoutChange = 0;
   } else if (!speaker.isPlaying()) {
-    currentSong = (currentSong + 1) % numSongs;
+    if(songsPlayedWithoutChange >= 1) currentSong = (currentSong + 1) % numSongs;
     playAudioFile();
   }
 
-  updateDisplay();
+  unsigned long currentMillis = millis();
+  if(millis() - previousMillis >= interval && speaker.isPlaying()) {
+    previousMillis = currentMillis;
+    updateDisplay(currentMillis);
+  }
 }
 
 int updatePotentiometer() {
@@ -105,31 +133,29 @@ unsigned long mapToSong(long x, long in_min, long in_max, long out_min, long out
 }
 
 void playAudioFile() {
+  Serial.println("printing");
   speaker.stopPlayback();
   musicStartTime = millis();
-  musicPlaying = true;
+  songsPlayedWithoutChange++;
 
   speaker.play(songs[currentSong]);
-
-  lcd.clear();
 }
 
-void updateDisplay() {
-  unsigned long elapsedTime = millis() - musicStartTime;
+void updateDisplay(unsigned long currentMillis) {
+  unsigned long elapsedTime = currentMillis - musicStartTime;
+
+  if(elapsedTime < 2000) return;
+
   unsigned long minutes = elapsedTime / 60000;
   unsigned long seconds = (elapsedTime % 60000) / 1000;
 
-  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(songTitle[currentSong]);
 
-  if(!speaker.isPlaying()) {
-    musicPlaying = false;
-    lcd.println("Happy Birthday");
-    lcd.print("Ewan!");
-  }
-
-  lcd.println(songTitle[currentSong]);
-  
-  char formattedTime[6]; // M:SS\0
-  sprintf(formattedTime, "%lu:%02lu", minutes, seconds);
-  lcd.print(formattedTime);
+  lcd.setCursor(0, 1);
+  lcd.print(minutes);
+  lcd.print(":");
+  if(seconds < 10) lcd.print("0");
+  lcd.print(seconds);
+  lcd.print("            ");
 }
