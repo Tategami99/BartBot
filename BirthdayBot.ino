@@ -20,7 +20,7 @@ unsigned long musicStartTime = 0;
 const unsigned int numSongs = 8;
 unsigned int currentSong = 0;
 unsigned int songsPlayedWithoutChange = 0;
-const char* songs[] = {"omg.wav", "superShy.wav", "hypeBoy.wav", "howSweet.wav", "eta.wav", "ditto.wav", "attention.wav", "newJeans.wav"};
+const char* songs[] = {"omg.wav", "superShy.wav", "hypeBoy.wav", "howSweet.wav", "eta.wav", "ditto.wav", "tellMe.wav", "newJeans.wav"};
 const char* songTitle[] = {
   "OMG             ", 
   "Super Shy       ", 
@@ -28,7 +28,7 @@ const char* songTitle[] = {
   "How Sweet       ", 
   "ETA             ", 
   "Ditto           ",
-  "Attention       ",
+  "Tell Me         ",
   "New Jeans       "
   };
 
