@@ -17,17 +17,19 @@
 #define SPEAKER_PIN 10
 TMRpcm speaker;
 unsigned long musicStartTime = 0;
-const unsigned int numSongs = 6;
+const unsigned int numSongs = 8;
 unsigned int currentSong = 0;
 unsigned int songsPlayedWithoutChange = 0;
-const char* songs[] = {"omg.wav", "superShy.wav", "hypeBoy.wav", "howSweet.wav", "eta.wav", "ditto.wav"};
+const char* songs[] = {"omg.wav", "superShy.wav", "hypeBoy.wav", "howSweet.wav", "eta.wav", "ditto.wav", "attention.wav", "newJeans.wav"};
 const char* songTitle[] = {
   "OMG             ", 
   "Super Shy       ", 
   "Hype Boy        ", 
   "How Sweet       ", 
   "ETA             ", 
-  "Ditto            "
+  "Ditto           ",
+  "Attention       ",
+  "New Jeans       "
   };
 
 //POTENTIOMETER DEFINITIONS
@@ -69,7 +71,7 @@ void setup() {
   //AUDIO
   speaker.speakerPin = SPEAKER_PIN;
   speaker.quality(1);
-  speaker.volume(0);
+  speaker.volume(7);
 
   //POTENTIOMETER
   for(int i = 0; i < numPotValues; i++) {
